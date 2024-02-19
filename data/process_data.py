@@ -1,5 +1,5 @@
 import pandas as pd
-from pysqlite3 import connect
+from sqlalchemy import create_engine
 from os import path
 
 
@@ -15,11 +15,9 @@ def extract_transform_data(cat_csv_filepath, msg_csv_filepath):
      3. It then drops duplicated values from both data frames
      4. Finally, it merged the two data frames by making use of the 'id' column
 
-    Arguments:
-        - cat_csv_filepath: <path to categories.csv>
-        - msg_csv_filepath: <path to messages.csv>
-    Output:
-        - merged_df: a merged data frame from messages.csv and categories.csv
+    :param cat_csv_filepath: <path to categories.csv>
+    :param msg_csv_filepath: <path to messages.csv>
+    :return: merged_df
     """
 
     cat_df = pd.read_csv(cat_csv_filepath)
@@ -29,13 +27,16 @@ def extract_transform_data(cat_csv_filepath, msg_csv_filepath):
     cat_df = cat_df.explode('categories')
     cat_df[['categories', 'value']] = cat_df['categories'].str.split('-', expand=True)
     cat_df = cat_df.drop_duplicates(subset=['categories', 'id']).reset_index(drop=True)
-    wide_cat_df = cat_df.pivot(index='id', columns='categories', values='value').reset_index(drop=True)
+    wide_cat_df = cat_df.pivot(index='id', columns='categories',
+                               values='value').reset_index(drop=True)
 
     # Dropping duplicates
     msg_df = msg_df.drop_duplicates().reset_index(drop=True)
 
     # Merge data frames
     merged_df = pd.concat([msg_df, wide_cat_df], axis=1)
+    # Replace values of 2 with 1, as it needs to be binary
+    merged_df.iloc[:, 4:] = merged_df.iloc[:,4:].apply(pd.to_numeric).replace(2, 1)
     return merged_df
 
 
@@ -44,15 +45,10 @@ def load_data(merged_df, db_filepath):
     This function takes the merged data frame created using extract_transform_data()
     function and loads it into a SQL database.
 
-    Arguments:
-    - merged_df: a merged data frame from messages.csv and categories.csv
-    - db_filename: database filename
-
-    Output: None.
-    :rtype: object
+    :param merged_df: a merged data frame from messages.csv and categories.csv
+    :param db_filepath: database file path
+    :return: None.
     """
-    conn = connect(db_filepath)
+    conn = create_engine('sqlite:///' + db_filepath)
     table_name = path.basename(db_filepath.replace('.db', '') + '_table')
-    merged_df.to_sql(table_name, con=conn, if_exists='replace')
-    conn.commit()
-    conn.close()
+    merged_df.to_sql(table_name, con=conn, index=False, if_exists='replace')

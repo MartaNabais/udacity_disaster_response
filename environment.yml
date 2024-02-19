@@ -1,0 +1,8 @@
+name: udacity_disaster_response
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.12.*
+  - pip
+  - pip:
+    - -r requirements.txt

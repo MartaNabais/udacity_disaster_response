@@ -1,3 +1,4 @@
 .idea/
 udacity_disaster_response.iml
 data/__pycache__
+models/__pycache__
