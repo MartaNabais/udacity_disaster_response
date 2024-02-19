@@ -85,7 +85,7 @@ class TextLengthExtractor(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        return pd.Series(X).apply(lambda x: x.len()).values
+        return pd.Series(X).apply(lambda x: len(x))
 
 
 class StartingVerbExtractor(BaseEstimator, TransformerMixin):
@@ -100,15 +100,14 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
             first_word, first_tag = pos_tags[0]
             if first_tag in ['VB', 'VBP'] or first_word == 'RT':
                 return True
-
         return False
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
     def transform(self, X):
-        X_tagged = pd.Series(X).apply(self.starting_verb).values
-        return X_tagged
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
 
 
 def build_model_pipeline():
@@ -122,7 +121,6 @@ def build_model_pipeline():
                 ('vect', CountVectorizer(tokenizer=tokenize)),
                 ('tfidf', TfidfTransformer())
             ])),
-            ('txt_len', TextLengthExtractor()),
             ('verb_extract', StartingVerbExtractor())
         ])),
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
@@ -130,11 +128,9 @@ def build_model_pipeline():
 
     parameters = {
         'features__nlp_pipeline__tfidf__norm': ['l1', 'l2'],
-        'features__nlp_pipeline__tfidf__use_idf': [True, False],
-        'clf__estimator__criterion': ['gini', 'entropy']
     }
 
-    cv = GridSearchCV(pipeline, param_grid=parameters, cv=5)
+    cv = GridSearchCV(pipeline, param_grid=parameters, cv=3)
 
     return cv
 

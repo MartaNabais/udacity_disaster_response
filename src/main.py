@@ -31,8 +31,8 @@ def main():
     logger.info("Results of predicting in Test Data:")
     y_pred = model.predict(X_test)
     models.train_classifier.evaluate_model(model, y_test, y_pred, labels)
-    logger.info("Saving model in pickle file...")
-    models.train_classifier.save_model(model, args.model_filepath)
+    # logger.info("Saving model in pickle file...")
+    # models.train_classifier.save_model(model, args.model_filepath)
     logger.info("End of Pipeline!")
 
 
