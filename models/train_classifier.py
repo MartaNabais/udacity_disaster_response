@@ -43,7 +43,7 @@ def split_train_test(db_filepath):
     This functions takes the disaster response data frame and splits into
     feature matrix, response variable and label values for training the NLP-ML pipeline.
 
-    :param db_filepath:
+    :param db_filepath: filepath to database.
     :return: a tuple with three numpy arrays X (feature matrix), y (response variable) and labels values.
     """
     disaster_resp_df = read_db(db_filepath)
@@ -57,6 +57,7 @@ def split_train_test(db_filepath):
 
 def tokenize(text):
     """
+    This function tokenizes text.
 
     :param text:
     :return:
@@ -79,6 +80,8 @@ def tokenize(text):
 
 def build_model_pipeline():
     """
+    This function builds an NLP-ML pipeline to vectorize text and
+    perform multioutput classification, using a RandomForestClassifier ensemble.
 
     :return:
     """
@@ -99,6 +102,15 @@ def build_model_pipeline():
 
 
 def evaluate_model(cv, x_test, y_true, categories):
+    """
+    This function outputs different metrics to assess classification results,
+    including fscore, precision and recall.
+    :param cv: trained model object.
+    :param x_test: numpy array with test data.
+    :param y_true: numpy array with test true classification results.
+    :param categories: list of category labels.
+    :return:
+    """
     y_pred = cv.predict(x_test)
     print(classification_report(y_true, y_pred, target_names=categories))
     print("\nBest Parameters:", cv.best_params_)
@@ -107,7 +119,7 @@ def evaluate_model(cv, x_test, y_true, categories):
 def save_model(cv, model_filepath):
     """
     This function saves the trained model in a pickle file.
-    :param cv:
+    :param cv: trained model.
     :param model_filepath:
     :return:
     """
@@ -116,6 +128,10 @@ def save_model(cv, model_filepath):
 
 
 def main():
+    """
+    Main function.
+    :return:
+    """
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))

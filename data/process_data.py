@@ -65,6 +65,10 @@ def load_data(merged_df, db_filepath):
 
 
 def main():
+    """
+    Main function.
+    :return:
+    """
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
