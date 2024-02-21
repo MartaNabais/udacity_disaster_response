@@ -1,10 +1,19 @@
 # Disaster Response Pipeline Project
 
-### Summary
+### Business Understanding
 
-This project is part of the Udacity's Data Science Nanodegree.
-I have analyzed disaster data from Appen (formerly Figure 8) to
-build a model for an API that classifies disaster messages.
+In the aftermath of a disaster, an overwhelming surge of communications floods various channels, including Twitter and Facebook. Unfortunately, this surge coincides with a time when disaster response organizations are least equipped to sift through and prioritize these messages. While bystanders on social media platforms rapidly disseminate information, much of it surpassing traditional news reports in speed and detail, only a fraction of these messages—roughly one in a thousand—contains actionable information for disaster response professionals.
+
+This presents a formidable challenge in disaster management:
+
++ Relevant messages must be efficiently directed to the appropriate organizations responsible for different facets of disaster relief, such as providing water and medical supplies.
++ Swiftly matching the appropriate level of assistance with individuals or areas in dire need of priority attention.
+  
+Appen (formerly Figure Eight) has amassed a dataset comprising over 30,000 authentic messages dispatched to disaster response entities during significant calamities, including the 2010 Haiti earthquake, the Chile earthquake of the same year, the 2010 floods in Pakistan, Superstorm Sandy in 2012, and numerous other incidents spanning more than a hundred different disasters. These messages have been amalgamated, refined, and standardized across various disasters, enabling comprehensive analysis of distinct patterns and the development of supervised machine learning models.
+
+In this project, which is part of the Udacity's Data Science Nanodegree. I have analyzed disaster data from Appen to build a model for an API that classifies disaster messages, that aimds to address the issues mentioned above.
+
+### Technical details - or how to run the code
 Briefly:
 1. The ETL (Extract-Transform-Load) Pipeline is located in `data/process_data.py` which:
     + Loads the `messages` and `categories` datasets
@@ -62,7 +71,7 @@ Briefly:
         - `conda activate ~/miniconda3/env/udacity_disaster_response`
     - To run ETL that cleans data and stores in database:
         - `cd data`
-        - `python process_data.py disaster_categories.csv disaster_messages.csv DisasterResponse.db`
+        - `python process_data.py categories.csv messages.csv DisasterResponse.db`
     - To run ML pipeline that trains classifier and saves it in a pickle file
         - `cd models`
         - `python train_classifier.py ../data/DisasterResponse.db classifier.pkl`
