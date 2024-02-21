@@ -71,4 +71,4 @@ classification results in several categories. The web app alsos displays visuali
 
 4. Run your web app: `python run.py`
 
-5. Click the `PREVIEW` button to open the homepage
+5. Check the webapp from an internet browser: ```http://127.0.0.1:3000```

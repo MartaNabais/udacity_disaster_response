@@ -1,11 +1,41 @@
 import json
-import plotly
+import re
+
+import joblib
 import pandas as pd
+import plotly
 from flask import Flask
 from flask import render_template, request
+from nltk import download
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from plotly.graph_objs import Bar
-import pickle
 from sqlalchemy import create_engine
+
+download(['punkt', 'wordnet', 'stopwords'], quiet=True)
+
+
+def tokenize(text):
+    """
+
+    :param text:
+    :return:
+    """
+    url_regex = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    detected_urls = re.findall(url_regex, text)
+    for url in detected_urls:
+        text = text.replace(url, "urlplaceholder")
+
+    # removing punctuation and convert to lowercase
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text).lower()
+    tokens = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+
+    # lemmatize verbs and remove stop words
+    lemmed = [lemmatizer.lemmatize(token, pos='v') for token in tokens if token not in stopwords.words("english")]
+
+    return lemmed
 
 
 app = Flask(__name__)
@@ -15,8 +45,7 @@ engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('DisasterResponse_table', engine)
 
 # load model
-with open('../models/classifier.pkl', 'rb') as file:
-    pickle.load(cv, file)
+model = joblib.load('../models/classifier.pkl')
 
 
 # index webpage displays cool visuals and receives user input text for model
