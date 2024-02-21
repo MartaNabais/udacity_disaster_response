@@ -11,7 +11,7 @@ This presents a formidable challenge in disaster management:
   
 Appen (formerly Figure Eight) has amassed a dataset comprising over 30,000 authentic messages dispatched to disaster response entities during significant calamities, including the 2010 Haiti earthquake, the Chile earthquake of the same year, the 2010 floods in Pakistan, Superstorm Sandy in 2012, and numerous other incidents spanning more than a hundred different disasters. These messages have been amalgamated, refined, and standardized across various disasters, enabling comprehensive analysis of distinct patterns and the development of supervised machine learning models.
 
-In this project, which is part of the Udacity's Data Science Nanodegree. I have analyzed disaster data from Appen to build a model for an API that classifies disaster messages, that aimds to address the issues mentioned above.
+In this project, which is part of the Udacity's Data Science Nanodegree, I have analyzed disaster data from Appen to build a model for an API that classifies disaster messages, that aims to address the issues mentioned above.
 
 ### Technical details - or how to run the code
 Briefly:
