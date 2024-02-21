@@ -75,4 +75,4 @@ Briefly:
 
 Note: if you don't want to run the full pipeline, you can run the app code
 directly, but first you need to unzip the pickle file ```models/classifier.pkl.gz```
->>>>>>> develop
+
