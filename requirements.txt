@@ -1,0 +1,11 @@
+scikit-learn
+numpy>=1.25.*
+nltk>=3.8.*
+pandas>=2.0.*
+PyYAML
+pylint
+flake8
+sqlalchemy
+plotly
+flask
+joblib
