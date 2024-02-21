@@ -1,6 +1,8 @@
+import sys
+from os import path
+
 import pandas as pd
 from sqlalchemy import create_engine
-from os import path
 
 
 def extract_transform_data(cat_csv_filepath, msg_csv_filepath):
@@ -20,24 +22,32 @@ def extract_transform_data(cat_csv_filepath, msg_csv_filepath):
     :return: merged_df
     """
 
-    cat_df = pd.read_csv(cat_csv_filepath)
-    msg_df = pd.read_csv(msg_csv_filepath)
+    categories = pd.read_csv(cat_csv_filepath)
+    messages = pd.read_csv(msg_csv_filepath)
+    df = messages.merge(categories, on='id')
+    categories = df.loc[:,'categories'].str.split(';', expand=True)
+    # select the first row of the categories dataframe
+    row = categories.iloc[0:,]
+    # use this row to extract a list of new column names for categories.
+    category_colnames = [category_name.split('-')[0] for category_name in row.values[0]]
+    # Rename the columns
+    categories.columns = category_colnames
+    # Convert category to binary values
+    for column in categories:
+        categories[column] = categories[column].str[-1]
+        categories[column] = categories[column].astype(int)
+    # Drop original categories values
+    df.drop(columns='categories', inplace=True)
+    # Concatenate the original dataframe with new categories data frame and drop duplicates
+    df = pd.concat([df.copy(), categories], axis=1).drop_duplicates()
 
-    cat_df.loc[:, 'categories'] = cat_df.categories.str.split(';')
-    cat_df = cat_df.explode('categories')
-    cat_df[['categories', 'value']] = cat_df['categories'].str.split('-', expand=True)
-    cat_df = cat_df.drop_duplicates(subset=['categories', 'id']).reset_index(drop=True)
-    wide_cat_df = cat_df.pivot(index='id', columns='categories',
-                               values='value').reset_index(drop=True)
-
-    # Dropping duplicates
-    msg_df = msg_df.drop_duplicates().reset_index(drop=True)
-
-    # Merge data frames
-    merged_df = pd.concat([msg_df, wide_cat_df], axis=1)
-    # Replace values of 2 with 1, as it needs to be binary
-    merged_df.iloc[:, 4:] = merged_df.iloc[:,4:].apply(pd.to_numeric).replace(2, 1)
-    return merged_df
+    # The 'related' column had values of 2, so I am replacing with 1
+    df['related'] = df['related'].replace(2, 1)
+    # Remove entries with the pattern 'NOTES' as most of these
+    # contain a message from the translator saying these should be ignored
+    # E.g.: 'NOTES: Regular gossip or message sharing. Not an emergency.'
+    df = df[~df['message'].str.contains('NOTES')]
+    return df
 
 
 def load_data(merged_df, db_filepath):
@@ -52,3 +62,30 @@ def load_data(merged_df, db_filepath):
     conn = create_engine('sqlite:///' + db_filepath)
     table_name = path.basename(db_filepath.replace('.db', '') + '_table')
     merged_df.to_sql(table_name, con=conn, index=False, if_exists='replace')
+
+
+def main():
+    if len(sys.argv) == 4:
+
+        messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
+
+        print('Loading data & cleaning data...\n    MESSAGES: {}\n    CATEGORIES: {}'
+              .format(messages_filepath, categories_filepath))
+        df = extract_transform_data(messages_filepath, categories_filepath)
+
+        print('Saving data...\n    DATABASE: {}'.format(database_filepath))
+        load_data(df, database_filepath)
+
+        print('Cleaned data saved to database!')
+
+    else:
+        print('Please provide the filepaths of the messages and categories ' \
+              'datasets as the first and second argument respectively, as ' \
+              'well as the filepath of the database to save the cleaned data ' \
+              'to as the third argument. \n\nExample: python process_data.py ' \
+              'disaster_messages.csv disaster_categories.csv ' \
+              'DisasterResponse.db')
+
+
+if __name__ == '__main__':
+    main()

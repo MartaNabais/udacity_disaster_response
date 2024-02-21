@@ -1,22 +1,25 @@
-import pandas as pd
-from sqlalchemy import create_engine
-from os import path
+import pickle
 import re
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
-from nltk import download
-from nltk.tag import pos_tag
+import sys
+import warnings
+from os import path
 
+import pandas as pd
+from nltk import download
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-import pickle
-download(['punkt', 'wordnet', 'stopwords'])
+from sklearn.pipeline import Pipeline
+from sqlalchemy import create_engine
+
+download(['punkt', 'wordnet', 'stopwords'], quiet=True)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def read_db(db_filepath):
@@ -44,12 +47,12 @@ def split_train_test(db_filepath):
     :return: a tuple with three numpy arrays X (feature matrix), y (response variable) and labels values.
     """
     disaster_resp_df = read_db(db_filepath)
-    X = disaster_resp_df.message.values
+    x = disaster_resp_df.message.values
     y = disaster_resp_df.iloc[:, 4:]
     labels = y.columns  # for confusion matrix
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
 
-    return X_train, X_test, y_train, y_test, labels
+    return x_train, x_test, y_train, y_test, labels
 
 
 def tokenize(text):
@@ -58,56 +61,20 @@ def tokenize(text):
     :param text:
     :return:
     """
-    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    url_regex = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     detected_urls = re.findall(url_regex, text)
     for url in detected_urls:
         text = text.replace(url, "urlplaceholder")
 
+    # removing punctuation and convert to lowercase
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text).lower()
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok, pos='v').lower()
-        clean_tok = re.sub(r"[^a-zA-Z0-9]", " ", clean_tok).strip()
-        clean_tokens.append(clean_tok)
+    # lemmatize verbs and remove stop words
+    lemmed = [lemmatizer.lemmatize(token, pos='v') for token in tokens if token not in stopwords.words("english")]
 
-    clean_tokens = [tok for tok in clean_tokens if tok not in stopwords.words("english")]
-
-    return list(filter(None, clean_tokens))
-
-
-class TextLengthExtractor(BaseEstimator, TransformerMixin):
-    """
-
-    """
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        return pd.Series(X).apply(lambda x: len(x))
-
-
-class StartingVerbExtractor(BaseEstimator, TransformerMixin):
-    """
-
-    """
-
-    def starting_verb(self, text):
-        sentence_list = sent_tokenize(text)
-        for sentence in sentence_list:
-            pos_tags = pos_tag(tokenize(sentence))
-            first_word, first_tag = pos_tags[0]
-            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
-                return True
-        return False
-
-    def fit(self, x, y=None):
-        return self
-
-    def transform(self, X):
-        X_tagged = pd.Series(X).apply(self.starting_verb)
-        return pd.DataFrame(X_tagged)
+    return lemmed
 
 
 def build_model_pipeline():
@@ -116,27 +83,24 @@ def build_model_pipeline():
     :return:
     """
     pipeline = Pipeline([
-        ('features', FeatureUnion([
-            ('nlp_pipeline', Pipeline([
-                ('vect', CountVectorizer(tokenizer=tokenize)),
-                ('tfidf', TfidfTransformer())
-            ])),
-            ('verb_extract', StartingVerbExtractor())
-        ])),
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
 
     parameters = {
-        'features__nlp_pipeline__tfidf__norm': ['l1', 'l2'],
+        'tfidf__norm': ['l1', 'l2'],
+        'clf__estimator__criterion': ['gini', 'entropy'],
     }
 
-    cv = GridSearchCV(pipeline, param_grid=parameters, cv=3)
+    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, cv=5, verbose=10)
 
     return cv
 
 
-def evaluate_model(cv, y_test, y_pred, labels):
-    print(classification_report(y_test, y_pred, target_names=labels))
+def evaluate_model(cv, x_test, y_true, categories):
+    y_pred = cv.predict(x_test)
+    print(classification_report(y_true, y_pred, target_names=categories))
     print("\nBest Parameters:", cv.best_params_)
 
 
@@ -151,9 +115,32 @@ def save_model(cv, model_filepath):
         pickle.dump(cv, file)
 
 
-# X_train, X_test, y_train, y_test, labels = split_train_test('../data/DisasterResponse.db')
-# model = build_model_pipeline()
-# model.fit(X_train, y_train)
-# y_pred = model.predict(X_test)
-#
-# evaluate_model(model, y_test, y_pred, labels)
+def main():
+    if len(sys.argv) == 3:
+        database_filepath, model_filepath = sys.argv[1:]
+        print('Loading data...\n    DATABASE: {}'.format(database_filepath))
+        x_train, x_test, y_train, y_test, labels = split_train_test(database_filepath)
+
+        print('Building model...')
+        model = build_model_pipeline()
+
+        print('Training model...')
+        model.fit(x_train, y_train)
+
+        print('Evaluating model...')
+        evaluate_model(model, x_test, y_test, labels)
+
+        print('Saving model...\n    MODEL: {}'.format(model_filepath))
+        save_model(model, model_filepath)
+
+        print('Trained model saved!')
+
+    else:
+        print('Please provide the filepath of the disaster messages database '
+              'as the first argument and the filepath of the pickle file to ' 
+              'save the model to as the second argument. \n\nExample: python ' 
+              'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
+
+
+if __name__ == '__main__':
+    main()

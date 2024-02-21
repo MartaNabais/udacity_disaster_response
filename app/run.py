@@ -2,9 +2,9 @@ import json
 import plotly
 import pandas as pd
 from flask import Flask
-from flask import render_template, request, jsonify
+from flask import render_template, request
 from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+import pickle
 from sqlalchemy import create_engine
 
 
@@ -15,7 +15,8 @@ engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('DisasterResponse_table', engine)
 
 # load model
-model = joblib.load("../models/classifier.pkl")
+with open('../models/classifier.pkl', 'rb') as file:
+    pickle.load(cv, file)
 
 
 # index webpage displays cool visuals and receives user input text for model

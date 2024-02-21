@@ -23,7 +23,7 @@ Briefly:
    
 
 3. Finally, the project also provides a Flask web app where an emergency worker can input a new message and get
-classification results in several categories. The web app alsop displays visualizations of the data.
+classification results in several categories. The web app alsos displays visualizations of the data.
 
 ### File Structure
 ```
@@ -42,9 +42,6 @@ classification results in several categories. The web app alsop displays visuali
 - models
   |- train_classifier.py
   |- classifier.pkl  # saved model
-  
-- src
-  |- main.py # main python module to run scripts
  
 - environment.yml # yaml file with environment configuration specs
 
@@ -63,11 +60,13 @@ classification results in several categories. The web app alsop displays visuali
    - To load environment:
      - `conda activate ~/anaconda3/env/udacity_disaster_response` **or**
      - `conda activate ~/miniconda3/env/udacity_disaster_response`
-   - To run ETL and ML pipelines that:
-     - Cleans data and stores in database
-     - Trains classifier and saves it in a pickle file   
-     `python src/main.py data/disaster_categories.csv data/disaster_messages.csv data/DisasterResponse.db models/classifier.pkl`
-    
+   - To run ETL that cleans data and stores in database:
+     - `cd data`
+     - `python process_data.py disaster_categories.csv disaster_messages.csv DisasterResponse.db`
+   - To run ML pipeline that trains classifier and saves it in a pickle file
+     - `cd models`
+     - `python train_classifier.py ../data/DisasterResponse.db classifier.pkl`
+
 3. Go to `app` directory: `cd app`
 
 4. Run your web app: `python run.py`

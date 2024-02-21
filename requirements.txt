@@ -6,3 +6,5 @@ PyYAML
 pylint
 flake8
 sqlalchemy
+plotly
+flask
